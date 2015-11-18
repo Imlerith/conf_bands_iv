@@ -60,13 +60,16 @@ h = median(abs(x-median(x)))/0.6745*(4/3/n)^0.2
 #one can choose ANY of these two: gridded or non-gridded
 yhat.h = lnrob(x, y, h = h, maxiter = 100, x0 = x)
 yhat.g = lnrob(x, y, h = g, maxiter = 100, x0 = x)
+ehat   = y - yhat.h$fv
+ehh    = median(abs(ehat-median(ehat)))/0.6745*(4/3/n)^0.2
 
 yhat.grid.h = lnrob(x, y, h = h, maxiter = 100, x0 = seq(0, 1, length.out = gridn))
 yhat.grid.g = lnrob(x, y, h = g, maxiter = 100, x0 = seq(0, 1, length.out = gridn))
 
 
 # Empirical pdf of x at gridpoints
-fxd = bkde(x, gridsize = gridn, range.x = c(yhat.grid.h$xx[1], yhat.grid.h$xx[gridn]))
+fxd    = bkde(x, gridsize = gridn, range.x = c(yhat.grid.h$xx[1], yhat.grid.h$xx[gridn]))
+fxdfin = bkde(x, gridsize = n, range.x = c(yhat.h$xx[1], yhat.h$xx[n]))
 
 # Bootstrapping
 
@@ -78,7 +81,7 @@ d    = vector(length = B, mode = "numeric")
 
 d = foreach(i = 1:B, .packages = pack)%dopar%{
   estar = lprq3( yhat.h$xx, (y - yhat.h$fv), h = hg, x0 = yhat.grid.h$xx )
-  eh    = median(abs(estar$fv-median(estar$fv)))/0.6745*(4/3/n)^0.2
+  esh   = median(abs(estar$fv-median(estar$fv)))/0.6745*(4/3/gridn)^0.2
   
   #THE WHOLE BANDT THING IN THE BOOTSTRAP PROCEDURE NOW!
   # Conditional pdf f(e|x) and E(psi^2(e)) at gridpoints
@@ -90,15 +93,15 @@ d = foreach(i = 1:B, .packages = pack)%dopar%{
     #HERE THE BANDWIDTH CHANGED TO BANDWIDTH FOR EHAT!
     #also ehat inserted instead of y - yhat.grid.h$fv; makes sense, because 
     #in the paper the density is estimated at ehat
-    nom   = sum((kernelq((x - yhat.grid.h$xx[k]) / (eh)) *
+    nom   = sum((kernelq((x - yhat.grid.h$xx[k]) / (esh)) *
                    yhat.grid.h$psi1((estar$fv[k]), deriv = 1)))
-    denom = sum(kernelq((x - yhat.grid.h$xx[k])/(eh)))
+    denom = sum(kernelq((x - yhat.grid.h$xx[k])/(esh)))
     fl[k] = nom / denom
     
     # Conditional E(psi^2(e))
-    nom    = sum((kernelq((x - yhat.grid.h$xx[k])/(eh)) *
+    nom    = sum((kernelq((x - yhat.grid.h$xx[k])/(esh)) *
                     yhat.grid.h$psi1((estar$fv[k]), deriv = 0)^2))
-    denom  = sum(kernelq((x -  yhat.grid.h$xx[k])/(eh)))
+    denom  = sum(kernelq((x -  yhat.grid.h$xx[k])/(esh)))
     fll[k] = nom / denom
   }
   bandt = (fxd$y)^(1/2) * abs(fl / sqrt(fll))
@@ -113,25 +116,24 @@ stopCluster(cl)
 d = unlist(d)
 
 # Conditional pdf f(e|x) and E(psi^2(e)) at gridpoints
-fl  = vector(length = gridn, mode = "numeric")
-fll = vector(length = gridn, mode = "numeric")
+fl  = vector(length = n, mode = "numeric")
+fll = vector(length = n, mode = "numeric")
 
-for (k in 1: gridn){
+for (k in 1:n){
   # Conditional pdf f(e|x)at gridpoints
   #HERE THE BANDWIDTH CHANGED TO H!
-  nom   = sum((kernelq((x - yhat.grid.h$xx[k]) / (h)) *
-                 yhat.grid.h$psi1((y - yhat.grid.h$fv[k]), deriv = 1)))
-  denom = sum(kernelq((x - yhat.grid.h$xx[k])/(h)))
+  nom   = sum(kernelq((x - yhat.h$xx[k]) / h) * kernelq((ehat - ehat[k]) / ehh))
+  denom = sum(kernelq((x - yhat.h$xx[k])/(h)))
   fl[k] = nom / denom
   
   # Conditional E(psi^2(e))
-  nom    = sum((kernelq((x - yhat.grid.h$xx[k])/(h)) *
-                  yhat.grid.h$psi1((y - yhat.grid.h$fv[k]), deriv = 0)^2))
-  denom  = sum(kernelq((x -  yhat.grid.h$xx[k])/(hg)))
+  nom    = sum((kernelq((x - yhat.h$xx[k])/(h)) *
+                  yhat.h$psi1((ehat[k]), deriv = 0)^2))
+  denom  = sum(kernelq((x -  yhat.h$xx[k])/(h)))
   fll[k] = nom / denom
 }
 
-bandt = (fxd$y)^(1/2) * abs(fl / sqrt(fll))
+bandt = (fxdfin$y)^(1/2) * abs(fl / sqrt(fll))
 
 
 dstar = quantile(d[d!=0], probs = 1 - alpha)
@@ -155,8 +157,8 @@ plot(x, y, xlab = "", ylab = "")
 lines(x.grid, yhat.grid.h$fv, lwd = "3", col = "blue")
 
 
-lines(x.grid, (yhat.grid.h$fv - dstar), col = "red",   lty = 3, lwd = 3)
-lines(x.grid, (yhat.grid.h$fv + dstar), col = "red",   lty = 3, lwd = 3)
+lines(x, (yhat.h$fv - dstar), col = "red",   lty = 3, lwd = 3)
+lines(x, (yhat.h$fv + dstar), col = "red",   lty = 3, lwd = 3)
 lines(x.grid, (yhat.grid.h$fv - band),  col = "yellow", lty = 3, lwd = 3)
 lines(x.grid, (yhat.grid.h$fv + band),  col = "yellow", lty = 3, lwd = 3)
 
