@@ -117,32 +117,6 @@ d    = vector(length = B, mode = "numeric")
 
 d = foreach(i = 1:B, .packages = pack)%dopar%{
   estar = lprq3( yhat.h$xx, (y - yhat.h$fv), h = hg, x0 = yhat.grid.h$xx )
-<<<<<<< HEAD
-  esh   = median(abs(estar$fv-median(estar$fv)))/0.6745*(4/3/gridn)^0.2
-  
-  #THE WHOLE BANDT THING IN THE BOOTSTRAP PROCEDURE NOW!
-  # Conditional pdf f(e|x) and E(psi^2(e)) at gridpoints
-  fl  = vector(length = gridn, mode = "numeric")
-  fll = vector(length = gridn, mode = "numeric")
-  
-  for (k in 1: gridn){
-    # Conditional pdf f(e|x)at gridpoints
-    #HERE THE BANDWIDTH CHANGED TO BANDWIDTH FOR EHAT!
-    #also ehat inserted instead of y - yhat.grid.h$fv; makes sense, because 
-    #in the paper the density is estimated at ehat
-    nom   = sum((kernelq((x - yhat.grid.h$xx[k]) / (esh)) *
-                   yhat.grid.h$psi1((estar$fv[k]), deriv = 1)))
-    denom = sum(kernelq((x - yhat.grid.h$xx[k])/(esh)))
-    fl[k] = nom / denom
-    
-    # Conditional E(psi^2(e))
-    nom    = sum((kernelq((x - yhat.grid.h$xx[k])/(esh)) *
-                    yhat.grid.h$psi1((estar$fv[k]), deriv = 0)^2))
-    denom  = sum(kernelq((x -  yhat.grid.h$xx[k])/(esh)))
-    fll[k] = nom / denom
-  }
-  bandt = (fxd$y)^(1/2) * abs(fl / sqrt(fll))
-=======
 #   eh    = median(abs(estar$fv-median(estar$fv)))/0.6745*(4/3/n)^0.2
 #   
 #   #THE WHOLE BANDT THING IN THE BOOTSTRAP PROCEDURE NOW!
@@ -177,29 +151,6 @@ d = foreach(i = 1:B, .packages = pack)%dopar%{
 stopCluster(cl)
 d = unlist(d)
 
-<<<<<<< HEAD
-# Conditional pdf f(e|x) and E(psi^2(e)) at gridpoints
-fl  = vector(length = n, mode = "numeric")
-fll = vector(length = n, mode = "numeric")
-
-for (k in 1:n){
-  # Conditional pdf f(e|x)at gridpoints
-  #HERE THE BANDWIDTH CHANGED TO H!
-  nom   = sum(kernelq((x - yhat.h$xx[k]) / h) * kernelq((ehat - ehat[k]) / ehh))
-  denom = sum(kernelq((x - yhat.h$xx[k])/(h)))
-  fl[k] = nom / denom
-  
-  # Conditional E(psi^2(e))
-  nom    = sum((kernelq((x - yhat.h$xx[k])/(h)) *
-                  yhat.h$psi1((ehat[k]), deriv = 0)^2))
-  denom  = sum(kernelq((x -  yhat.h$xx[k])/(h)))
-  fll[k] = nom / denom
-}
-
-bandt = (fxdfin$y)^(1/2) * abs(fl / sqrt(fll))
-
-
-=======
 # # Conditional pdf f(e|x) and E(psi^2(e)) at gridpoints
 # fl  = vector(length = gridn, mode = "numeric")
 # fll = vector(length = gridn, mode = "numeric")
